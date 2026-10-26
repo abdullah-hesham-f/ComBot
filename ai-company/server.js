@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const {
-  PROVIDER = 'gemini', MODEL_NAME = 'gemini-3-flash-preview', API_KEY = '', OLLAMA_URL = 'http://localhost:11434',
+  PROVIDER = 'gemini', MODEL_NAME = 'gemini-3.5-flash', API_KEY = '', OLLAMA_URL = 'http://localhost:11434',
   APP_PASSWORD = '', PORT = 3000, DATA_DIR = path.join(__dirname, 'data'),
   MAX_PROMPT_CHARS = '30000', TRUST_PROXY = '0', RATE_LIMIT_PER_MIN = '40'
 } = process.env;
@@ -98,8 +98,8 @@ async function* stream(system, prompt, files = [], signal) {
     throw new Error('API_KEY غير موجود في ملف .env — يرجى إضافة مفتاح Google AI Studio');
   }
 
-  // Prioritize active and stable multimodal models
-  const modelsToTry = [MODEL_NAME, 'gemini-3-flash-preview', 'gemini-flash-latest'].filter(Boolean);
+  // Prioritize active and stable multimodal models (deduplicated)
+  const modelsToTry = Array.from(new Set([MODEL_NAME, 'gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemma-4-26b-a4b-it'])).filter(Boolean);
 
   const hasFiles = Array.isArray(files) && files.length > 0;
   const parts = [];
@@ -150,6 +150,9 @@ async function* stream(system, prompt, files = [], signal) {
           }
         }
         if (gotAny) return;
+      } else {
+        const errJson = await r.json().catch(() => ({}));
+        throw new Error(errJson.error?.message || `HTTP ${r.status}`);
       }
 
       // 2. Try generateContent (for models like Gemma 4 that don't support SSE)

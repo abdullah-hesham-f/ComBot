@@ -435,16 +435,19 @@ async function llm(sys, prompt, files = []) {
 }
 
 async function ask(id, prompt, files = []) {
-  const companyInfo = (co && co.name) ? `الشركة: "${co.name}" (المجال العام: "${co.int || 'عام'}").` : '';
+  const pLower = prompt.toLowerCase();
+  const isSimpleGreeting = !files.length && ['welcome', 'hi', 'hello', 'hey', 'أهلا', 'اهلا', 'مرحبا', 'مرحباً', 'سلام', 'السلام عليكم', 'ازيك'].some(g => pLower.includes(g));
+  const companyInfo = (!isSimpleGreeting && co && co.name) ? `سياق الشركة: "${co.name}" (النشاط العام: "${co.int || 'عام'}").` : '';
   const fileNotice = files.length > 0 ? `\n[مرفق في الطلب ${files.length} ملف/صورة: افحص محتواها بدقة واستخرج كافة البيانات والحقائق منها].` : '';
   const sys = `${R[id].s}
 ${companyInfo}${fileNotice}
 
 قواعد صارمة للإجابة والتنفيذ:
-1. التزم بدقة مطلقة بما طلبه المستخدم في نص المهمة والملفات المرفقة، ولا تخترع أو تفترض أي بيانات أو أرقام أو منتجات وهمية لم يذكرها المستخدم.
-2. إذا كانت المهمة لا تتعلق بمجال الشركة الافتراضي، فركز بالكامل على ما طلبه المستخدم فقط دون فرض مجال الشركة على الموضوع.
-3. اكتب ردك باللغة العربية بأسلوب عملي، مباشر، وموجز يخدم اختصاصك بدقة دون إطالة غير لازمة.
-4. إياك وكتابة أي مسودات داخلية أو أفكار باللغة الإنجليزية في الرد، بل أخرج النتيجة النهائية مباشرة.`;
+1. التزم بدقة فقط بما طلبه المستخدم في نص رسالته، ولا تضف أو تخترع أي معلومات أو منتجات وهمية لم يذكرها.
+2. إذا كانت رسالة المستخدم ترحيباً (مثل welcome أو hi أو hello أو أهلاً أو مرحباً أو السلام عليكم): رحب بالمستخدم بلطف واختصار شديد (في سطرين فقط) واعرض استعداد الفريق للمساعدة في أي مهمة يطلبها، وتجنب تماماً ذكر أو فرض نشاط الشركة أو اصطناع خطط وهمية.
+3. إذا كانت المهمة لا تتعلق بمجال الشركة الافتراضي، فركز بالكامل على ما طلبه المستخدم فقط دون فرض مجال الشركة على الموضوع.
+4. اكتب ردك باللغة العربية بأسلوب عملي، مباشر، وموجز يخدم اختصاصك بدقة دون إطالة غير لازمة.
+5. لا تطبع أي مسودات داخلية أو أفكار باللغة الإنجليزية في الرد إطلاقاً.`;
   return await llm(sys, prompt, files);
 }
 
@@ -708,7 +711,7 @@ function updateLiveTicker(who, what) {
   }
 }
 
-async function work(id, prompt, to, files = []) {
+async function work(id, prompt, to, files = [], isSilent = false) {
   if (!running) throw new Error('CANCELED');
   status(id, 'يشتغل', prompt.slice(0, 60));
   flash = id; live = '';
@@ -728,7 +731,7 @@ async function work(id, prompt, to, files = []) {
       throw new Error('CANCELED');
     }
     status(id, 'جاهز', 'فشل: ' + e.message);
-    post(id, 'user', '⚠️ خطأ أثناء التنفيذ: ' + e.message, 'message');
+    if (!isSilent) post(id, 'user', '⚠️ خطأ أثناء التنفيذ: ' + e.message, 'message');
     throw e;
   }
 }
@@ -780,11 +783,21 @@ async function run(task, target) {
       const lead = staff.ceo ? 'ceo' : ks[0];
       const planBot = staff.tasks ? 'tasks' : lead;
 
-      // 1. Smart Triage: Determine exactly who is needed
-      const availSpecialists = ks.map(k => `- ${k}: ${R[k].ar} (تخصصه: ${R[k].s})`).join('\n');
-      const fileHint = filesToSend.length ? `[مرفق ${filesToSend.length} ملف]` : '';
+      const tLower = task.toLowerCase().trim();
+      const isGreeting = !filesToSend.length && ['welcome', 'hi', 'hello', 'hey', 'أهلا', 'اهلا', 'مرحبا', 'مرحباً', 'سلام', 'السلام عليكم', 'صباح الخير', 'مساء الخير', 'ازيك', 'عامل ايه'].some(g => tLower === g || tLower.startsWith(g + ' ') || tLower.endsWith(' ' + g));
 
-      const triagePrompt = `أنت منسق الفريق ومدير توزيع المهام الذكي.
+      let jobs = [];
+      let needsSchedule = false;
+      let needsReport = false;
+
+      if (isGreeting) {
+        jobs = [{ employee: lead, subtask: `الترحيب بالمستخدم باختصار ولطف وعرض استعداد الفريق للمساعدة: "${task}"` }];
+      } else {
+        // 1. Smart Triage: Determine exactly who is needed
+        const availSpecialists = ks.map(k => `- ${k}: ${R[k].ar} (تخصصه: ${R[k].s})`).join('\n');
+        const fileHint = filesToSend.length ? `[مرفق ${filesToSend.length} ملف]` : '';
+
+        const triagePrompt = `أنت منسق الفريق ومدير توزيع المهام الذكي.
 المهمة المطلوبة من المستخدم: "${task}" ${fileHint}
 
 الموظفون المتاحون في الشركة:
@@ -809,42 +822,38 @@ ${availSpecialists}
   "needsReport": false
 }`;
 
-      let triageResult = null;
-      try {
-        const triageRaw = await work(planBot, triagePrompt, 'all', filesToSend);
-        if (!running) return;
-        const jsonMatch = triageRaw.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          triageResult = JSON.parse(jsonMatch[0]);
+        let triageResult = null;
+        try {
+          const triageRaw = await work(planBot, triagePrompt, 'all', filesToSend, true);
+          if (!running) return;
+          const jsonMatch = triageRaw.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            triageResult = JSON.parse(jsonMatch[0]);
+          }
+        } catch (e) {
+          console.warn('Triage parse failed, falling back', e);
         }
-      } catch (e) {
-        console.warn('Triage parse failed, falling back', e);
-      }
 
-      let jobs = [];
-      let needsSchedule = false;
-      let needsReport = false;
+        if (triageResult && Array.isArray(triageResult.assigned) && triageResult.assigned.length > 0) {
+          jobs = triageResult.assigned.filter(j => ks.includes(j.employee) && j.subtask);
+          needsSchedule = !!triageResult.needsSchedule && !!staff.sch;
+          needsReport = !!triageResult.needsReport && !!staff.rep && jobs.length > 1;
+        }
 
-      if (triageResult && Array.isArray(triageResult.assigned) && triageResult.assigned.length > 0) {
-        jobs = triageResult.assigned.filter(j => ks.includes(j.employee) && j.subtask);
-        needsSchedule = !!triageResult.needsSchedule && !!staff.sch;
-        needsReport = !!triageResult.needsReport && !!staff.rep && jobs.length > 1;
-      }
-
-      // Safe fallback if parsing failed
-      if (!jobs.length) {
-        const tLower = task.toLowerCase();
-        if (tLower.includes('لوجو') || tLower.includes('تصميم') || tLower.includes('ألوان') || tLower.includes('ui') || tLower.includes('واجه')) {
-          jobs = [{ employee: staff.des ? 'des' : lead, subtask: `تنفيذ المتطلبات التصميمية والهوية البصرية: ${task}` }];
-        } else if (tLower.includes('قاعدة بيانات') || tLower.includes('sql') || tLower.includes('جدول') || tLower.includes('schema') || tLower.includes('بيانات')) {
-          jobs = [{ employee: staff.db ? 'db' : lead, subtask: `تصميم وهيكلة قاعدة البيانات والاستعلامات: ${task}` }];
-        } else if (tLower.includes('تكلف') || tLower.includes('ميزاني') || tLower.includes('سعر') || tLower.includes('محاسب') || tLower.includes('أرباح')) {
-          jobs = [{ employee: staff.acc ? 'acc' : lead, subtask: `حساب التكاليف المالية والميزانية: ${task}` }];
-        } else if (task.trim().length < 25 && !filesToSend.length) {
-          jobs = [{ employee: lead, subtask: `الرد المباشر والشامل على المستخدم: ${task}` }];
-        } else {
-          const relevant = ks.filter(k => k !== 'sch' && k !== 'rep');
-          jobs = (relevant.length ? relevant.slice(0, 2) : [lead]).map(k => ({ employee: k, subtask: `تنفيذ جانب اختصاصك بدقة للتاسك: ${task}` }));
+        // Safe fallback if parsing failed
+        if (!jobs.length) {
+          if (tLower.includes('لوجو') || tLower.includes('تصميم') || tLower.includes('ألوان') || tLower.includes('ui') || tLower.includes('واجه')) {
+            jobs = [{ employee: staff.des ? 'des' : lead, subtask: `تنفيذ المتطلبات التصميمية والهوية البصرية: ${task}` }];
+          } else if (tLower.includes('قاعدة بيانات') || tLower.includes('sql') || tLower.includes('جدول') || tLower.includes('schema') || tLower.includes('بيانات')) {
+            jobs = [{ employee: staff.db ? 'db' : lead, subtask: `تصميم وهيكلة قاعدة البيانات والاستعلامات: ${task}` }];
+          } else if (tLower.includes('تكلف') || tLower.includes('ميزاني') || tLower.includes('سعر') || tLower.includes('محاسب') || tLower.includes('أرباح')) {
+            jobs = [{ employee: staff.acc ? 'acc' : lead, subtask: `حساب التكاليف المالية والميزانية: ${task}` }];
+          } else if (task.trim().length < 25 && !filesToSend.length) {
+            jobs = [{ employee: lead, subtask: `الرد المباشر والشامل على المستخدم: ${task}` }];
+          } else {
+            const relevant = ks.filter(k => k !== 'sch' && k !== 'rep');
+            jobs = (relevant.length ? relevant.slice(0, 2) : [lead]).map(k => ({ employee: k, subtask: `تنفيذ جانب اختصاصك بدقة للتاسك: ${task}` }));
+          }
         }
       }
 
@@ -853,9 +862,13 @@ ${availSpecialists}
         const j = jobs[0];
         plan = [{ employee: j.employee, subtask: j.subtask, status: 'working', result: '' }];
         save(); pane();
-        post(planBot, j.employee, j.subtask, 'task');
+        if (!isGreeting) post(planBot, j.employee, j.subtask, 'task');
 
-        const r = await work(j.employee, `المطلوب منك بالتحديد: ${j.subtask}\n(طلب المستخدم: ${task})\nأنجز المطلوب بدقة واحترافية وبشكل نهائي ومباشر.`, 'user', filesToSend);
+        const promptText = isGreeting
+          ? `المطلوب منك: الترحيب بالمستخدم بلطف وبشكل موجز وطبيعي (في سطرين أو ثلاثة فقط)، وعرض استعدادك وفريقك للبدء في أي مهمة أو مشروع يطلبه. لا تسرد تفاصيل أو تتحدث بتكلف ولا تذكر أي منتجات لم يذكرها.`
+          : `المطلوب منك بالتحديد: ${j.subtask}\n(طلب المستخدم: ${task})\nأنجز المطلوب بدقة واحترافية وبشكل نهائي ومباشر.`;
+
+        const r = await work(j.employee, promptText, 'user', filesToSend);
         if (!running) return;
 
         plan[0].status = 'done'; plan[0].result = r;
