@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🌿 AI Company - شركة وكلاء الذكاء الاصطناعي</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --g: #16A34A; --g2: #22C55E; --gl: #DCFCE7; --gdark: #14532D;
+  --b: #E5E7EB; --t: #111827; --s: #6B7280; --bg: #F9FAFB;
+  --card: #FFFFFF; --red: #EF4444; --red-bg: #FEE2E2; --blue: #2563EB; --blue-bg: #DBEAFE;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: 'Cairo', system-ui, sans-serif;
+  background: var(--bg); color: var(--t); overflow-x: hidden;
+}
+button { font-family: inherit; cursor: pointer; transition: all 0.2s ease; }
+input, textarea, select {
+  font-family: inherit; font-size: 14px; border: 1.5px solid var(--b);
+  border-radius: 12px; padding: 10px 14px; width: 100%; outline: none;
+  background: #fff; transition: border-color 0.2s;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--g2); box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
+}
+.btn {
+  background: var(--g); color: #fff; border: 0; border-radius: 12px;
+  padding: 10px 18px; font-weight: 700; display: inline-flex; align-items: center;
+  justify-content: center; gap: 8px; transition: all 0.2s;
+}
+.btn:hover { background: #15803d; transform: translateY(-1px); }
+.btn.o { background: #fff; color: var(--g); border: 1.5px solid var(--g); }
+.btn.o:hover { background: var(--gl); }
+.btn.r { background: #fff; color: var(--red); border: 1px solid #fecaca; padding: 4px 10px; font-size: 12px; border-radius: 8px; }
+.btn.r:hover { background: var(--red-bg); }
+.btn-stop {
+  background: var(--red); color: #fff; border: 0; border-radius: 12px;
+  padding: 10px 20px; font-weight: 700; display: inline-flex; align-items: center;
+  justify-content: center; gap: 8px; transition: all 0.2s; cursor: pointer;
+  box-shadow: 0 4px 12px rgba(239,68,68,0.3); animation: pulseRed 1.6s infinite;
+}
+.btn-stop:hover { background: #dc2626; transform: translateY(-1px); }
+@keyframes pulseRed {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+}
+.btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.card {
+  border: 1px solid var(--b); border-radius: 18px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.03); padding: 16px; background: var(--card);
+}
+.hide { display: none !important; }
+
+/* Setup Screen */
+#setup { max-width: 480px; margin: 8vh auto; padding: 0 20px; text-align: center; }
+#setup h1 { color: var(--g); font-size: 32px; margin-bottom: 6px; font-weight: 800; }
+#setup .card { display: grid; gap: 14px; text-align: right; margin-top: 18px; }
+
+/* Main App Layout */
+#app { display: flex; flex-direction: column; height: 100vh; }
+header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 24px; border-bottom: 1px solid var(--b); background: #fff; gap: 12px; flex-wrap: wrap;
+}
+.brand h2 { margin: 0; font-size: 19px; font-weight: 800; color: var(--g); display: flex; align-items: center; gap: 8px; }
+.brand small { color: var(--s); font-size: 13px; font-weight: 500; }
+
+/* Live Ticker Banner */
+.live-ticker {
+  background: #ECFDF5; border: 1.5px solid #A7F3D0; border-radius: 99px;
+  padding: 6px 16px; display: inline-flex; align-items: center; gap: 10px;
+  font-size: 13px; font-weight: 600; color: var(--gdark); animation: fadeIn 0.3s;
+}
+.pulse-dot {
+  width: 9px; height: 9px; border-radius: 50%; background: var(--g2);
+  box-shadow: 0 0 0 0 rgba(34,197,94,0.7); animation: pulseDot 1.4s infinite;
+}
+@keyframes pulseDot {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
+  70% { transform: scale(1.2); box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+
+main {
+  display: grid; grid-template-columns: 340px 1fr; gap: 16px;
+  padding: 16px 24px; flex: 1; min-height: 0; overflow: hidden;
+}
+
+/* Sidebar Team List */
+#team { overflow-y: auto; display: grid; gap: 12px; align-content: start; padding-left: 4px; }
+.emp {
+  display: grid; gap: 10px; transition: all 0.25s ease; border: 1.5px solid var(--b);
+}
+.emp.active-emp {
+  border-color: var(--g2); background: #F0FDF4;
+  box-shadow: 0 0 0 3px rgba(34,197,94,0.2), 0 8px 20px rgba(34,197,94,0.12);
+  transform: translateY(-2px);
+}
+.emp .top { display: flex; gap: 12px; align-items: center; }
+.ic {
+  width: 44px; height: 44px; border-radius: 14px; background: var(--gl);
+  color: var(--g); display: grid; place-items: center; flex: none; transition: transform 0.2s;
+}
+.emp.active-emp .ic { transform: scale(1.08); background: #BBF7D0; }
+.ic svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.emp b { font-size: 15px; font-weight: 700; color: var(--t); }
+.emp small { color: var(--s); display: block; font-size: 12px; }
+.st {
+  font-size: 11px; padding: 3px 10px; border-radius: 99px;
+  background: #F3F4F6; color: var(--s); font-weight: 600;
+}
+.st.w { background: var(--gl); color: var(--g); }
+.st.live { background: #FEF08A; color: #854D0E; animation: pulseDot 1.4s infinite; }
+.doing {
+  font-size: 12px; color: var(--s); min-height: 16px; line-height: 1.4;
+  background: #F9FAFB; padding: 6px 10px; border-radius: 8px; border: 1px dashed var(--b);
+}
+.emp.active-emp .doing { background: #DCFCE7; border-color: #86EFAC; color: var(--gdark); font-weight: 600; }
+.emp input { padding: 6px 10px; font-size: 12px; border-radius: 8px; }
+
+/* Right Section & Tabs */
+#right { display: flex; flex-direction: column; min-height: 0; }
+.tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.tabs button {
+  border: 1.5px solid var(--b); background: #fff; border-radius: 99px;
+  padding: 8px 18px; font-weight: 700; font-size: 13px; color: var(--s);
+}
+.tabs button:hover { border-color: var(--g2); color: var(--g); }
+.tabs button.a { background: var(--g); color: #fff; border-color: var(--g); box-shadow: 0 2px 8px rgba(22,163,74,0.25); }
+.pane { flex: 1; overflow-y: auto; min-height: 0; position: relative; }
+
+/* Messages / Chat */
+.m { display: flex; gap: 12px; margin-bottom: 16px; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.m .bub {
+  background: #F9FAFB; border: 1.5px solid var(--b); border-radius: 16px;
+  padding: 12px 16px; flex: 1; font-size: 14.5px; line-height: 1.8; overflow-wrap: anywhere;
+}
+.m .h { font-size: 13px; color: var(--g); font-weight: 800; margin-bottom: 4px; display: flex; justify-content: space-between; }
+.m .h span { color: var(--s); font-weight: 400; font-size: 11px; }
+.m.u .bub { background: var(--gl); border-color: #86EFAC; }
+.cursor { display: inline-block; width: 8px; height: 16px; background: var(--g); margin-right: 4px; animation: blink 0.8s infinite; vertical-align: middle; }
+@keyframes blink { 50% { opacity: 0; } }
+.dots i {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--g2); margin: 0 3px; animation: bl 1s infinite;
+}
+.dots i:nth-child(2) { animation-delay: 0.2s; }
+.dots i:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bl { 50% { opacity: 0.2; transform: scale(0.8); } }
+
+/* Attachment Preview Chips */
+.attach-preview-bar {
+  display: flex; gap: 8px; flex-wrap: wrap; padding: 8px 14px;
+  background: #F3F4F6; border-top: 1px solid var(--b); align-items: center;
+}
+.file-chip {
+  display: inline-flex; align-items: center; gap: 8px; background: #fff;
+  border: 1px solid var(--b); border-radius: 10px; padding: 4px 10px;
+  font-size: 12px; font-weight: 600; color: var(--t); box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.file-chip img { width: 26px; height: 26px; object-fit: cover; border-radius: 6px; }
+.file-chip .pdf-tag {
+  background: var(--red-bg); color: var(--red); font-size: 10px;
+  font-weight: 800; padding: 2px 6px; border-radius: 4px;
+}
+.file-chip .rm {
+  color: var(--s); cursor: pointer; font-size: 14px; font-weight: 800; margin-right: 4px;
+}
+.file-chip .rm:hover { color: var(--red); }
+
+/* Message File Attachment Cards */
+.msg-files { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.msg-file-card {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px;
+  background: #fff; border: 1px solid var(--b); border-radius: 10px; font-size: 12px;
+  font-weight: 600; color: var(--t); text-decoration: none;
+}
+.msg-file-card img { width: 36px; height: 36px; object-fit: cover; border-radius: 6px; }
+.msg-file-card .pdf-icon { font-size: 20px; }
+
+/* Plan View */
+.plan-container { display: grid; gap: 16px; padding: 12px 6px; }
+.plan-header-card {
+  background: linear-gradient(135deg, #F0FDF4, #DCFCE7); border: 1.5px solid #86EFAC;
+  border-radius: 16px; padding: 16px 20px; display: grid; gap: 8px;
+}
+.plan-header-card h3 { margin: 0; color: var(--gdark); font-size: 17px; font-weight: 800; }
+.plan-header-card p { margin: 0; color: #166534; font-size: 13.5px; line-height: 1.6; }
+.plan-step-card {
+  border: 1.5px solid var(--b); border-radius: 16px; padding: 16px;
+  background: #fff; display: grid; gap: 10px; transition: all 0.2s;
+}
+.plan-step-card.active-step {
+  border-color: var(--g2); box-shadow: 0 0 0 3px rgba(34,197,94,0.18);
+  background: #F0FDF4;
+}
+.step-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.step-who { display: flex; align-items: center; gap: 10px; }
+.step-who b { font-size: 15px; }
+.step-status {
+  padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 700;
+}
+.step-status.pending { background: #F3F4F6; color: var(--s); }
+.step-status.working { background: #FEF08A; color: #854D0E; animation: pulseDot 1.4s infinite; }
+.step-status.done { background: var(--gl); color: var(--g); }
+.step-desc { font-size: 13.5px; color: var(--t); font-weight: 600; line-height: 1.6; }
+.step-result {
+  background: #F9FAFB; border: 1px solid var(--b); border-radius: 12px;
+  padding: 10px 14px; font-size: 13px; line-height: 1.7; max-height: 200px; overflow-y: auto;
+}
+
+/* Footer / Input area */
+footer {
+  display: flex; flex-direction: column; background: #fff;
+  border-top: 1px solid var(--b); position: relative;
+}
+.input-row { display: flex; gap: 10px; padding: 12px 20px; align-items: flex-end; }
+.input-row textarea { height: 50px; resize: none; flex: 1; }
+.input-row select { width: 170px; }
+
+/* Drag and Drop Overlay */
+.drop-overlay {
+  position: absolute; inset: 0; background: rgba(220, 252, 231, 0.92);
+  border: 3px dashed var(--g2); border-radius: 18px; display: grid;
+  place-items: center; font-size: 18px; font-weight: 800; color: var(--gdark);
+  z-index: 100; pointer-events: none; animation: fadeIn 0.15s;
+}
+
+/* Map SVG */
+.line { stroke: var(--b); stroke-width: 2; }
+.line.on { stroke: var(--g2); stroke-width: 3.5; stroke-dasharray: 8 6; animation: dash 0.6s linear infinite; }
+@keyframes dash { to { stroke-dashoffset: -14; } }
+.doc { padding: 10px 14px; line-height: 1.9; font-size: 14.5px; }
+
+@media (max-width: 860px) {
+  main { grid-template-columns: 1fr; height: auto; overflow: visible; }
+  #team { max-height: 300px; }
+  .pane { min-height: 440px; }
+  .input-row { flex-wrap: wrap; }
+  .input-row select { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- Setup Screen -->
+<section id="setup">
+  <h1>🌿 AI Company</h1>
+  <p style="color:var(--s);font-size:15px;margin:0">منصة وكلاء الذكاء الاصطناعي الذاتية والمدعومة بنماذج Gemma 4 و Gemini</p>
+  <div class="card">
+    <label><b>اسم الشركة:</b>
+      <input id="cn" placeholder="مثال: شركة إنماء للحلول البرمجية">
+    </label>
+    <label><b>مجال الشركة واهتماماتها:</b>
+      <textarea id="ci" rows="2" placeholder="مثال: تجارة إلكترونية، تصميم مواقع، تحليل بيانات، تطبيقات جوال"></textarea>
+    </label>
+    <label id="aw" class="hide"><b>كود الدخول:</b>
+      <input id="acc" type="password" dir="ltr" autocomplete="current-password">
+    </label>
+    <button class="btn" id="go">🚀 إنشاء وتجهيز الشركة</button>
+  </div>
+</section>
+
+<!-- App Screen -->
+<section id="app" class="hide">
+  <header>
+    <div class="brand">
+      <h2 id="t1">🌿 اسم الشركة</h2>
+      <small id="t2">مجال الشركة</small>
+    </div>
+    
+    <!-- Live Activity Ticker -->
+    <div id="liveTicker" class="live-ticker hide">
+      <span class="pulse-dot"></span>
+      <span><b>جاري العمل لحظياً:</b> <span id="liveWho">CEO</span> — <span id="liveWhat">يحلل متطلبات المشروع...</span></span>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn o" id="clearBtn" title="مسح سجل الرسائل والبدء بمهمة جديدة">🧹 مسح المحادثة</button>
+      <button class="btn o" id="set">🏢 تغيير الشركة</button>
+    </div>
+  </header>
+
+  <main id="mainContainer">
+    <!-- Left Sidebar: Bots Team -->
+    <div id="team"></div>
+
+    <!-- Right Content: Panes -->
+    <div id="right">
+      <div class="tabs" id="tabs"></div>
+      <div class="pane card" id="pane">
+        <!-- Drag & Drop Overlay -->
+        <div id="dropOverlay" class="drop-overlay hide">
+          📁 أفلت ملفات الصور أو الـ PDF هنا لتحليلها فوراً بواسطة الفريق!
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer Input & Attachments -->
+  <footer>
+    <!-- Attached Files Preview Bar -->
+    <div id="attachBar" class="attach-preview-bar hide"></div>
+
+    <div class="input-row">
+      <!-- Hidden File Input -->
+      <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,application/pdf" multiple style="display:none">
+      
+      <!-- Attach Button -->
+      <button class="btn o" id="attachBtn" type="button" title="إرفاق صور أو ملفات PDF">
+        📎 ارفاق صور / PDF
+      </button>
+
+      <textarea id="task" placeholder="اكتب المطلوب هنا أو اسحب وأفلت صور وملفات PDF لتحليلها... مثال: حلل هذا المستند واقترح خطة تقنية وتصميمية"></textarea>
+      
+      <select id="tgt"></select>
+      <button class="btn" id="send">🚀 ابدأ التنفيذ</button>
+      <button class="btn-stop hide" id="stopBtn" type="button">🛑 إيقاف</button>
+    </div>
+  </footer>
+</section>
+
+<script>
+/* ---------- Personas & Icons ---------- */
+const I = {
+  ceo: '<path d="M3 7l4 4 5-7 5 7 4-4-2 12H5z"/>',
+  db: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  des: '<circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1"/><circle cx="12" cy="7" r="1"/><circle cx="16" cy="10" r="1"/><path d="M12 21c-2 0-2-3 0-3s3-2 3-3"/>',
+  tasks: '<path d="M9 6h11M9 12h11M9 18h11M3 6l1 1 2-2M3 12l1 1 2-2M3 18l1 1 2-2"/>',
+  acc: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/>',
+  sch: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  rep: '<path d="M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-3"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>'
+};
+
+const R = {
+  ceo: { n: 'CEO', ar: 'د. ريان (الرئيس التنفيذي)', s: 'أنت الرئيس التنفيذي CEO. تحلل المهام والملفات المرفقة وتحدد الرؤية الاستراتيجية والأولويات وتتخذ القرارات الحاسمة وتعتمد المخرجات.' },
+  db: { n: 'Database Engineer', ar: 'م. طارق (مهندس قواعد البيانات)', s: 'أنت مهندس قواعد بيانات ذكي. تحلل متطلبات البيانات والجداول في الملفات المرفقة وتصمم مخططات ERD وهياكل SQL واستعلامات الأداء.' },
+  des: { n: 'Graphic Designer', ar: 'ليلى (مصممة الجرافيك و UI/UX)', s: 'أنت مصممة جرافيك وواجهات مستخدم. تفحص الصور والتصاميم المرفقة وتقترح الهوية البصرية، أكواد الألوان Hex، وتوزيع الواجهات وتجربة المستخدم.' },
+  tasks: { n: 'Task Manager', ar: 'كريم (مدير المهام وتفكيك WBS)', s: 'أنت مدير مهام وخبير تفكيك مشاريع WBS. تدرس المتطلبات وتقسمها إلى مهام فرعية دقيقة واضحة وتوزعها على الموظفين وتتابع إنجازها لحظياً.' },
+  acc: { n: 'Accountant', ar: 'سامي (المستشار المالي والمحاسب)', s: 'أنت خبير مالي ومحاسب. تحلل التكاليف التشغيلية وسيرفرات الكلاود، تحسب الميزانيات، وتتوقع الأرباح والـ ROI بالأرقام الدقيقة.' },
+  sch: { n: 'Scheduler', ar: 'ندى (مديرة الوقت والجدولة)', s: 'أنت مديرة الوقت وجدولة المشاريع. تنظمين المهام في خطة زمنية وجداول سبرنت أسبوعية بمواعيد تسليم وDeadlines واضحة في جدول Markdown منظم.' },
+  rep: { n: 'Reporter', ar: 'هاني (محلل ومعد التقارير)', s: 'أنت محلل ومعد التقارير التنفيذية. تجمع كل مخرجات أعضاء الفريق والملفات المرفقة وتصيغ تقريراً ختامياً شاملاً: الملخص، التفاصيل، والتوصيات.' }
+};
+
+const svg = k => `<svg viewBox="0 0 24 24">${I[k] || I.user}</svg>`;
+const $ = id => document.getElementById(id);
+const esc = s => String(s || '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const md = s => esc(s)
+  .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+  .replace(/\*(.+?)\*/g, '<i>$1</i>')
+  .replace(/`([^`]+)`/g, '<code style="background:#f3f4f6;padding:2px 6px;border-radius:6px;font-family:monospace">$1</code>')
+  .replace(/\|(.+)\|/g, (match) => {
+    const cells = match.split('|').filter(c => c.trim().length > 0);
+    if (cells.some(c => c.includes('---'))) return '';
+    return `<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid #e5e7eb">${cells.map(c => `<div style="flex:1;font-size:12.5px">${c.trim()}</div>`).join('')}</div>`;
+  })
+  .replace(/\n/g, '<br>');
+
+/* ---------- State ---------- */
+let co = null, staff = {}, stat = {}, msgs = [], tab = 'chat', report = '', sched = '', plan = [];
+let running = false, flash = null, live = '', cfgInfo = {}, code = sessionStorage.getItem('aic_code') || '';
+let currentFiles = [];
+
+/* Audio feedback */
+function chime(freq = 660, dur = 0.12) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine'; osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+
+/* ---------- API Layer ---------- */
+async function api(path, opt = {}) {
+  const r = await fetch(path, { ...opt, headers: { 'Content-Type': 'application/json', 'x-access-code': code, ...(opt.headers || {}) } });
+  if (r.status === 401) { sessionStorage.removeItem('aic_code'); throw new Error('كود الدخول غير صحيح'); }
+  return r;
+}
+
+let st;
+const save = () => {
+  clearTimeout(st);
+  st = setTimeout(() => api('/api/state', {
+    method: 'PUT',
+    body: JSON.stringify({ co, staff, msgs: msgs.slice(-200), report, sched, plan })
+  }).catch(() => {}), 400);
+};
+
+let currentAbortController = null;
+
+async function llm(sys, prompt, files = []) {
+  if (!running) throw new Error('CANCELED');
+  const signal = currentAbortController ? currentAbortController.signal : undefined;
+  const r = await api('/api/llm', { method: 'POST', signal, body: JSON.stringify({ system: sys, prompt, files }) });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || ('HTTP ' + r.status));
+  const rd = r.body.getReader(), dec = new TextDecoder();
+  let buf = '', out = '';
+  for (;;) {
+    if (!running) {
+      try { rd.cancel(); } catch(e) {}
+      throw new Error('CANCELED');
+    }
+    const { done, value } = await rd.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const parts = buf.split('\n\n');
+    buf = parts.pop();
+    for (const p of parts) {
+      if (!p.startsWith('data: ')) continue;
+      const j = JSON.parse(p.slice(6));
+      if (j.error) throw new Error(j.error);
+      if (j.t) {
+        out += j.t; live = out;
+        if (tab === 'chat') pane();
+        if (tab === 'plan') pane();
+      }
+    }
+  }
+  return out || '(رد فارغ)';
+}
+
+async function ask(id, prompt, files = []) {
+  const companyInfo = (co && co.name) ? `الشركة: "${co.name}" (المجال العام: "${co.int || 'عام'}").` : '';
+  const fileNotice = files.length > 0 ? `\n[مرفق في الطلب ${files.length} ملف/صورة: افحص محتواها بدقة واستخرج كافة البيانات والحقائق منها].` : '';
+  const sys = `${R[id].s}
+${companyInfo}${fileNotice}
+
+قواعد صارمة للإجابة والتنفيذ:
+1. التزم بدقة مطلقة بما طلبه المستخدم في نص المهمة والملفات المرفقة، ولا تخترع أو تفترض أي بيانات أو أرقام أو منتجات وهمية لم يذكرها المستخدم.
+2. إذا كانت المهمة لا تتعلق بمجال الشركة الافتراضي، فركز بالكامل على ما طلبه المستخدم فقط دون فرض مجال الشركة على الموضوع.
+3. اكتب ردك باللغة العربية بأسلوب عملي، مباشر، وموجز يخدم اختصاصك بدقة دون إطالة غير لازمة.
+4. إياك وكتابة أي مسودات داخلية أو أفكار باللغة الإنجليزية في الرد، بل أخرج النتيجة النهائية مباشرة.`;
+  return await llm(sys, prompt, files);
+}
+
+/* ---------- File Attachments Handling ---------- */
+$('attachBtn').onclick = () => $('fileInput').click();
+
+$('fileInput').onchange = e => {
+  handleFiles(e.target.files);
+  e.target.value = '';
+};
+
+function handleFiles(fileList) {
+  for (const file of fileList) {
+    if (file.size > 15 * 1024 * 1024) { alert(`الملف ${file.name} كبير جداً (الحد الأقصى 15 ميجابايت)`); continue; }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      currentFiles.push({
+        name: file.name,
+        type: file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg'),
+        size: (file.size / 1024).toFixed(1) + ' KB',
+        data: ev.target.result
+      });
+      renderAttachBar();
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function renderAttachBar() {
+  const bar = $('attachBar');
+  if (!currentFiles.length) { bar.classList.add('hide'); bar.innerHTML = ''; return; }
+  bar.classList.remove('hide');
+  bar.innerHTML = currentFiles.map((f, i) => {
+    const isPdf = f.type.includes('pdf') || f.name.endsWith('.pdf');
+    return `
+      <div class="file-chip">
+        ${isPdf ? '<span class="pdf-tag">PDF</span>' : `<img src="${f.data}">`}
+        <span>${esc(f.name)} <small style="color:var(--s)">(${f.size})</small></span>
+        <span class="rm" onclick="removeFile(${i})" title="إزالة">✕</span>
+      </div>
+    `;
+  }).join('');
+}
+window.removeFile = i => { currentFiles.splice(i, 1); renderAttachBar(); };
+
+/* Drag and drop support */
+const overlay = $('dropOverlay');
+const mainArea = $('mainContainer');
+window.addEventListener('dragover', e => { e.preventDefault(); overlay.classList.remove('hide'); });
+overlay.addEventListener('dragleave', () => overlay.classList.add('hide'));
+overlay.addEventListener('drop', e => {
+  e.preventDefault(); overlay.classList.add('hide');
+  if (e.dataTransfer.files?.length) handleFiles(e.dataTransfer.files);
+});
+
+/* ---------- UI Rendering ---------- */
+function setup() {
+  if (co) { $('cn').value = co.name; $('ci').value = co.int; }
+  $('aw').classList.toggle('hide', !cfgInfo.auth);
+}
+
+$('go').onclick = async () => {
+  if (!$('cn').value.trim()) return alert('يرجى كتابة اسم الشركة');
+  if (cfgInfo.auth) { code = $('acc').value.trim(); sessionStorage.setItem('aic_code', code); }
+  try { await api('/api/state'); } catch (e) { return alert(e.message); }
+  const nc = { name: $('cn').value.trim(), int: $('ci').value.trim() || 'عام' };
+  if (!co || co.name !== nc.name) {
+    msgs = []; report = ''; sched = ''; plan = []; stat = {};
+    staff = { ceo: 1, tasks: 1, db: 1, des: 1, acc: 1, sch: 1, rep: 1 };
+  }
+  co = nc; save(); show();
+};
+
+$('set').onclick = () => { $('app').classList.add('hide'); $('setup').classList.remove('hide'); };
+
+function show() {
+  $('setup').classList.add('hide'); $('app').classList.remove('hide');
+  $('t1').textContent = '🌿 ' + co.name; $('t2').textContent = co.int;
+  $('tabs').innerHTML = [
+    ['chat', '💬 التواصل الحي'],
+    ['plan', '📋 خطة العمل التفاعلية'],
+    ['map', '🕸️ خريطة الفريق'],
+    ['sch', '📅 الجدول الزمني'],
+    ['rep', '📊 التقرير النهائي']
+  ].map(([k, l]) => `<button class="${tab === k ? 'a' : ''}" onclick="tab='${k}';show()">${l}</button>`).join('');
+  team(); pane(); tgt();
+}
+
+function team() {
+  $('team').innerHTML = Object.keys(R).map(k => {
+    const on = staff[k], s = stat[k] || ['جاهز', ''];
+    const isActive = flash === k;
+    return `
+      <div class="card emp ${isActive ? 'active-emp' : ''}">
+        <div class="top">
+          <div class="ic">${svg(k)}</div>
+          <div style="flex:1">
+            <b>${R[k].ar}</b>
+            <small>${R[k].n}</small>
+          </div>
+          ${on ? `<span class="st ${isActive ? 'live' : s[0] !== 'جاهز' ? 'w' : ''}">${isActive ? '⚡ يعمل الآن' : s[0]}</span>` : `<button class="btn" onclick="add('${k}')">+ Add</button>`}
+        </div>
+        ${on ? `
+          <div class="doing">${isActive && live ? esc(live.slice(-80)) + ' <span class="cursor"></span>' : esc(s[1] || 'في انتظار مهمة...')}</div>
+          <div style="display:flex;gap:6px">
+            <input id="q_${k}" placeholder="تكليف هذا الموظف مباشرة..." onkeydown="if(event.key==='Enter')direct('${k}')">
+            <button class="btn r" onclick="rm('${k}')">حذف</button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function tgt() {
+  const v = $('tgt').value;
+  $('tgt').innerHTML = '<option value="all">👥 الفريق كاملاً (تقسيم آلي)</option>' + Object.keys(staff).map(k => `<option value="${k}">${R[k].ar} فقط</option>`).join('');
+  $('tgt').value = v || 'all';
+}
+
+window.add = k => { staff[k] = 1; chime(700); save(); show(); };
+window.rm = k => { delete staff[k]; delete stat[k]; save(); show(); };
+window.direct = k => { const v = $('q_' + k).value.trim(); if (v) run(v, k); };
+
+/* Main Content Pane */
+function pane() {
+  const p = $('pane');
+  if (tab === 'chat') {
+    p.innerHTML = (msgs.length ? '' : `
+      <div style="text-align:center;padding:50px 20px;color:var(--s)">
+        <div style="font-size:42px;margin-bottom:12px">🌿</div>
+        <h3 style="color:var(--g);margin:0 0 6px 0">فريق عمل شركتك الذكي بانتظارك</h3>
+        <p style="margin:0;font-size:14px">أرفق صوراً أو مستندات PDF أو اكتب تكليفاً، وشاهد الفريق وهو يوزع الأدوار ويتواصل لحظياً!</p>
+      </div>
+    `) + msgs.map(m => `
+      <div class="m ${m.from === 'user' ? 'u' : ''}">
+        <div class="ic">${svg(m.from === 'user' ? 'user' : m.from)}</div>
+        <div class="bub">
+          <div class="h">
+            <b>${m.from === 'user' ? 'أنت (المكلف)' : R[m.from].ar}</b>
+            <span>← ${m.to === 'all' ? 'الفريق كاملاً' : m.to === 'user' ? 'أنت' : R[m.to]?.ar || ''} · ${m.type}</span>
+          </div>
+          <div>${md(m.content)}</div>
+          ${m.files && m.files.length ? `
+            <div class="msg-files">
+              ${m.files.map(f => `
+                <div class="msg-file-card">
+                  ${(f.type.includes('pdf') || f.name.endsWith('.pdf')) ? '<span class="pdf-icon">📄</span>' : `<img src="${f.data}">`}
+                  <span>${esc(f.name)}</span>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `).join('') + (running && flash ? `
+      <div class="m">
+        <div class="ic">${svg(flash)}</div>
+        <div class="bub">
+          <div class="h"><b>${R[flash].ar}</b> <span>⚡ جاري الرد والتنفيذ لحظياً...</span></div>
+          <div>${live ? md(live) + ' <span class="cursor"></span>' : '<div class="dots"><i></i><i></i><i></i></div>'}</div>
+        </div>
+      </div>
+    ` : '');
+    p.scrollTop = p.scrollHeight;
+  } else if (tab === 'plan') {
+    if (!plan.length) {
+      p.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--s)"><div style="font-size:40px;margin-bottom:10px">📋</div><h3>لا توجد خطة عمل حالياً</h3><p>أرسل مهمة أو أرفق ملفات في خانة التكليف وسيقوم مدير المهام بتوليد خطة عمل فورية ومتابعة تنفيذها لحظياً.</p></div>`;
+      return;
+    }
+    p.innerHTML = `
+      <div class="plan-container">
+        <div class="plan-header-card">
+          <h3>📋 خطة العمل الاستراتيجية والتنفيذية</h3>
+          <p>توزيع الأدوار والمهام على أعضاء الفريق ومتابعة الإنجاز لحظياً في كل مرحلة.</p>
+        </div>
+        ${plan.map((step, idx) => {
+          const isActive = flash === step.employee;
+          return `
+            <div class="plan-step-card ${isActive ? 'active-step' : ''}">
+              <div class="step-top">
+                <div class="step-who">
+                  <div class="ic" style="width:36px;height:36px">${svg(step.employee)}</div>
+                  <div>
+                    <b>المرحلة ${idx + 1}: ${R[step.employee]?.ar || step.employee}</b>
+                    <small style="display:block;color:var(--s)">${R[step.employee]?.n || ''}</small>
+                  </div>
+                </div>
+                <span class="step-status ${step.status === 'done' ? 'done' : isActive ? 'working' : 'pending'}">
+                  ${step.status === 'done' ? '✅ تم الإنجاز' : isActive ? '⚡ جاري العمل لحظياً' : '⏳ في الانتظار'}
+                </span>
+              </div>
+              <div class="step-desc">🎯 <b>المهمة:</b> ${esc(step.subtask)}</div>
+              ${step.result ? `
+                <div class="step-result">
+                  <b style="color:var(--g)">مخرجات المرحلة:</b><br>
+                  ${md(step.result)}
+                </div>
+              ` : isActive && live ? `
+                <div class="step-result" style="border-color:var(--g2);background:#F0FDF4">
+                  <b style="color:var(--g)">جاري الإنجاز لحظياً...</b><br>
+                  ${md(live)} <span class="cursor"></span>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } else if (tab === 'map') {
+    const ks = Object.keys(staff);
+    if (!ks.length) { p.innerHTML = '<p style="text-align:center;color:var(--s);margin-top:40px">أضف موظفين لرؤية الخريطة</p>'; return; }
+    const W = 580, H = 400, cx = W / 2, cy = H / 2, rad = Math.min(W, H) / 2 - 50, pos = {};
+    ks.forEach((k, i) => { const a = 2 * Math.PI * i / ks.length - Math.PI / 2; pos[k] = [cx + rad * Math.cos(a), cy + rad * Math.sin(a)]; });
+    let ln = '';
+    for (let i = 0; i < ks.length; i++) for (let j = i + 1; j < ks.length; j++) ln += `<line class="line" x1="${pos[ks[i]][0]}" y1="${pos[ks[i]][1]}" x2="${pos[ks[j]][0]}" y2="${pos[ks[j]][1]}"/>`;
+    const recent = msgs.filter(m => pos[m.from] && pos[m.to]).slice(-6).map(m => `<line class="line on" x1="${pos[m.from][0]}" y1="${pos[m.from][1]}" x2="${pos[m.to][0]}" y2="${pos[m.to][1]}"/>`).join('');
+    p.innerHTML = `
+      <div style="padding:10px;text-align:center">
+        <svg viewBox="0 0 ${W} ${H}" style="width:100%;max-height:360px">
+          ${ln}${recent}
+          ${ks.map(k => `
+            <g transform="translate(${pos[k][0]-24},${pos[k][1]-24})">
+              <rect width="48" height="48" rx="14" fill="${flash === k ? '#86EFAC' : '#DCFCE7'}" stroke="${flash === k ? '#16A34A' : '#22C55E'}" stroke-width="${flash === k ? '2.5' : '1'}"/>
+              <g transform="translate(12,12)" stroke="#16A34A" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${I[k]}</g>
+              <text x="24" y="68" text-anchor="middle" font-size="12" font-weight="700" fill="#374151" font-family="Cairo">${R[k].ar.split(' ')[0]}</text>
+            </g>
+          `).join('')}
+        </svg>
+        <p style="color:var(--s);font-size:12.5px;margin:8px 0 0 0">الخطوط المتحركة تمثل الرسائل الحية المتبادلة بين الموظفين أثناء التحليل والتنفيذ ⚡</p>
+      </div>
+    `;
+  } else {
+    p.innerHTML = `<div class="doc">${md((tab === 'sch' ? sched : report) || 'لا توجد نتائج حتى الآن. ابدأ بتكليف الفريق بمهمة.')}</div>`;
+  }
+}
+
+/* ---------- Orchestrator & Live Tracker ---------- */
+function post(from, to, content, type, files = []) {
+  msgs.push({ from, to, content, type, files, timestamp: Date.now() });
+  pane();
+}
+
+function status(k, s, d) {
+  stat[k] = [s, d || ''];
+  team();
+}
+
+function updateLiveTicker(who, what) {
+  const ticker = $('liveTicker');
+  if (!who) { ticker.classList.add('hide'); return; }
+  ticker.classList.remove('hide');
+  $('liveWho').textContent = R[who]?.ar || who;
+  $('liveWhat').textContent = what;
+}
+
+async function work(id, prompt, to, files = []) {
+  if (!running) throw new Error('CANCELED');
+  status(id, 'يشتغل', prompt.slice(0, 60));
+  flash = id; live = '';
+  updateLiveTicker(id, prompt.slice(0, 65) + '...');
+  chime(550, 0.1);
+  team(); pane();
+
+  try {
+    const r = await ask(id, prompt, files);
+    if (!running) throw new Error('CANCELED');
+    status(id, 'خلّص', 'تم التسليم بنجاح');
+    chime(880, 0.15);
+    return r;
+  } catch (e) {
+    if (e.message === 'CANCELED' || e.name === 'AbortError' || !running) {
+      status(id, 'جاهز', 'تم الإيقاف');
+      throw new Error('CANCELED');
+    }
+    status(id, 'جاهز', 'فشل: ' + e.message);
+    post(id, 'user', '⚠️ خطأ أثناء التنفيذ: ' + e.message, 'message');
+    throw e;
+  }
+}
+
+function stopExecution() {
+  if (!running) return;
+  running = false;
+  if (currentAbortController) {
+    try { currentAbortController.abort(); } catch(e) {}
+    currentAbortController = null;
+  }
+  flash = null; live = '';
+  updateLiveTicker(null);
+  $('send').classList.remove('hide');
+  $('send').disabled = false;
+  $('stopBtn').classList.add('hide');
+  post('user', 'all', '🛑 تم إيقاف التنفيذ فوراً بواسطة المستخدم.', 'message');
+  save(); show();
+}
+
+async function run(task, target) {
+  if (running) return;
+  const ks = Object.keys(staff);
+  if (!ks.length) return alert('يرجى تفعيل موظف واحد على الأقل في الشركة');
+
+  const filesToSend = [...currentFiles];
+  currentFiles = [];
+  renderAttachBar();
+
+  running = true;
+  currentAbortController = new AbortController();
+  report = ''; sched = ''; tab = 'chat';
+  post('user', target === 'all' ? 'all' : target, task, 'task', filesToSend);
+  show();
+  
+  $('send').classList.add('hide');
+  $('stopBtn').classList.remove('hide');
+
+  try {
+    if (target !== 'all') {
+      const r = await work(target, task, 'user', filesToSend);
+      if (!running) return;
+      post(target, 'user', r, 'result');
+    } else if (ks.length === 1) {
+      const r = await work(ks[0], task, 'user', filesToSend);
+      if (!running) return;
+      post(ks[0], 'user', r, 'result');
+    } else {
+      const lead = staff.ceo ? 'ceo' : ks[0];
+      const planBot = staff.tasks ? 'tasks' : lead;
+
+      // 1. Strategic analysis of task & attached files
+      let ctx = '';
+      if (lead !== planBot) {
+        const fileHint = filesToSend.length ? `مع فحص دقيق للملفات المرفقة (${filesToSend.length} ملف)` : '';
+        const a = await work(lead, `حلل هذا التاسك بدقة ${fileHint}. حدد فقط ما طلبه المستخدم واقترح خطة استراتيجية واقعية ومباشرة بدون اختلاق أي بيانات وهمية:\n${task}`, planBot, filesToSend);
+        if (!running) return;
+        post(lead, planBot, a, 'task');
+        ctx = `تحليل واستراتيجية الرئيس التنفيذي (${R[lead].n}):\n${a}\n\n`;
+      }
+
+      if (!running) return;
+
+      // 2. Generate Interactive Plan & Breakdown (WBS)
+      const avail = ks.filter(k => k !== planBot && k !== 'rep' && k !== 'sch').concat([]);
+      const pool = avail.length ? avail : ks;
+
+      const pr = await work(planBot, `${ctx}التاسك المطلوب تنفيذه: ${task}
+المطلوب: قسّم الشغل إلى مهام عملية ومباشرة على الموظفين المتاحين: ${pool.join(', ')}.
+قواعد صارمة:
+- المهام يجب أن تكون معتمدة حصراً على ما طلبه المستخدم في التاسك والملفات المرفقة.
+- لا تخترع منتجات أو بيانات لم تُطلب نهائياً.
+- أرجع فقط مصفوفة JSON صالحة بدون أي نص إضافي أو كتل برمجية، على هذا النحو الدقيق:
+[{"employee":"كود الموظف","subtask":"وصف المهمة بدقة"}]`, 'all', filesToSend);
+
+      if (!running) return;
+
+      let jobs = [];
+      try {
+        const jsonMatch = pr.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          jobs = JSON.parse(jsonMatch[0]).filter(j => pool.includes(j.employee) && j.subtask);
+        }
+      } catch (e) {}
+
+      if (!jobs.length) {
+        if (task.trim().length < 15 && !filesToSend.length) {
+          jobs = [{ employee: lead, subtask: `الرد المباشر على المستخدم وتوضيح الدعم المتاح للمهمة: ${task}` }];
+        } else {
+          jobs = pool.map(k => ({ employee: k, subtask: `تنفيذ الاختصاص الخاص بـ ${R[k].ar} للتاسك الفعلي: ${task}` }));
+        }
+      }
+
+      // Populate interactive Plan tab
+      plan = jobs.map(j => ({ employee: j.employee, subtask: j.subtask, status: 'pending', result: '' }));
+      post(planBot, 'all', '📋 تم إعداد خطة العمل التفصيلية:\n' + jobs.map(j => `• ${R[j.employee].ar}: ${j.subtask}`).join('\n'), 'task');
+      save(); show();
+
+      // 3. Execution of each step in the plan
+      let outs = [];
+      for (let i = 0; i < jobs.length; i++) {
+        if (!running) break;
+        const j = jobs[i];
+        plan[i].status = 'working'; save(); pane();
+        post(planBot, j.employee, j.subtask, 'task');
+
+        const done = outs.map(o => `[${R[o.k].ar}]: ${o.r}`).join('\n\n');
+        const fileCtx = filesToSend.length ? `[يرجى استخدام وتحليل الملفات المرفقة بالتاسك لإتمام دورك]` : '';
+        const r = await work(j.employee, `مهمتك المحددة: ${j.subtask}\n${fileCtx}\n(التاسك الأصلي: ${task})\n${done ? '\nمخرجات زملائك المنجزة حتى الآن:\n' + done : ''}\nتنبيه: التزم بالحقائق والمعطيات المتاحة ولا تفترض بيانات وهمية.`, staff.rep ? 'rep' : lead, filesToSend);
+
+        if (!running) break;
+        plan[i].status = 'done'; plan[i].result = r; save(); pane();
+        post(j.employee, staff.rep ? 'rep' : lead, r, 'result');
+        outs.push({ k: j.employee, r });
+      }
+
+      if (!running) return;
+      const all = outs.map(o => `[${R[o.k].ar}]: ${o.r}`).join('\n\n');
+
+      // 4. Scheduling & Timeline
+      if (running && staff.sch && planBot !== 'sch') {
+        post(planBot, 'sch', '📅 إعداد الجدول الزمني والمواعيد النهائية', 'task');
+        sched = await work('sch', `التاسك: ${task}\nالمهام المنجزة:\n${jobs.map(j => `- ${R[j.employee].ar}: ${j.subtask}`).join('\n')}\nقم بإعداد جدول أسبوعي متكامل بـ Deadlines وتوزيع واضح للأيام بناءً على ما تم إنجازه فقط.`, staff.rep ? 'rep' : lead);
+        if (running) post('sch', staff.rep ? 'rep' : lead, sched, 'result');
+      }
+
+      // 5. Final Report
+      if (running) {
+        const rp = staff.rep ? 'rep' : lead;
+        if (rp === 'rep') post(planBot, 'rep', '📊 صياغة التقرير النهائي الشامل', 'task');
+        report = await work(rp, `اكتب تقريراً تنفيذياً شاملاً ونهائياً (ملخص تنفيذي، تفاصيل مخرجات الفريق، توصيات عملية) للتاسك: ${task}\n\nمخرجات الفريق المنجزة بالفعل:\n${all}${sched ? '\n\nالجدول الزمني:\n' + sched : ''}\nلا تضف أي بيانات خيالية من خارج المخرجات الفعلية.`, lead);
+        if (running) post(rp, lead, report, 'result');
+
+        // 6. CEO Final Review & Sign-off
+        if (running && staff.ceo && rp !== 'ceo') {
+          const rv = await work('ceo', `راجع هذا التقرير النهائي للمشروع واعتمده وقدم كلمتك الختامية للفريق:\n${report}`, 'user');
+          if (running) post('ceo', 'user', '✅ اعتماد ومراجعة الرئيس التنفيذي (CEO):\n' + rv, 'result');
+        }
+
+        tab = 'plan';
+      }
+    }
+  } catch (e) {
+    if (e.message !== 'CANCELED' && !e.message.includes('abort')) {
+      console.error(e);
+    }
+  } finally {
+    running = false;
+    currentAbortController = null;
+    flash = null; live = '';
+    updateLiveTicker(null);
+    $('send').classList.remove('hide');
+    $('send').disabled = false;
+    $('stopBtn').classList.add('hide');
+    save(); show();
+  }
+}
+
+$('send').onclick = () => {
+  const v = $('task').value.trim();
+  if (!v && !currentFiles.length) return alert('يرجى كتابة نص المهمة أو إرفاق ملف للبدء');
+  $('task').value = '';
+  run(v || 'يرجى فحص وتحليل الملفات المرفقة وتوزيع مهامها على الفريق', $('tgt').value);
+};
+
+$('stopBtn').onclick = stopExecution;
+
+$('clearBtn').onclick = () => {
+  if (confirm('هل تريد مسح سجل المحادثة والبدء بمهمة جديدة فارغة؟')) {
+    if (running) stopExecution();
+    msgs = [];
+    plan = [];
+    report = '';
+    sched = '';
+    live = '';
+    stat = {};
+    Object.keys(staff).forEach(k => stat[k] = ['جاهز', '']);
+    currentFiles = [];
+    renderAttachBar();
+    save();
+    show();
+  }
+};
+
+$('task').onkeydown = e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    $('send').click();
+  }
+};
+
+/* Init */
+(async () => {
+  try { cfgInfo = await (await fetch('/api/config')).json(); } catch (e) {}
+  try {
+    const r = await api('/api/state');
+    if (r.ok) {
+      const d = await r.json();
+      ({ co = null, staff = {}, msgs = [], report = '', sched = '', plan = [] } = d);
+    }
+  } catch (e) {}
+  setup();
+  if (co) show();
+})();
+</script>
+</body>
+</html>
