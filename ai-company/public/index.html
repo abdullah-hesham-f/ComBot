@@ -400,7 +400,13 @@ let currentAbortController = null;
 async function llm(sys, prompt, files = []) {
   if (!running) throw new Error('CANCELED');
   const signal = currentAbortController ? currentAbortController.signal : undefined;
-  const r = await api('/api/llm', { method: 'POST', signal, body: JSON.stringify({ system: sys, prompt, files }) });
+  let r;
+  try {
+    r = await api('/api/llm', { method: 'POST', signal, body: JSON.stringify({ system: sys, prompt, files }) });
+  } catch (err) {
+    if (err.name === 'AbortError' || !running) throw new Error('CANCELED');
+    throw new Error('تعذر الاتصال بالخادم. يرجى التأكد من تشغيل السيرفر والاتصال بالإنترنت.');
+  }
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || ('HTTP ' + r.status));
   const rd = r.body.getReader(), dec = new TextDecoder();
   let buf = '', out = '';
@@ -555,7 +561,7 @@ function team() {
 
 function tgt() {
   const v = $('tgt').value;
-  $('tgt').innerHTML = '<option value="all">👥 الفريق كاملاً (تقسيم آلي)</option>' + Object.keys(staff).map(k => `<option value="${k}">${R[k].ar} فقط</option>`).join('');
+  $('tgt').innerHTML = '<option value="all">🎯 توجيه ذكي (للموظف المختص فقط أو الفريق عند الحاجة)</option>' + Object.keys(staff).map(k => `<option value="${k}">👤 ${R[k].ar} فقط</option>`).join('');
   $('tgt').value = v || 'all';
 }
 
@@ -767,54 +773,95 @@ async function run(task, target) {
       const lead = staff.ceo ? 'ceo' : ks[0];
       const planBot = staff.tasks ? 'tasks' : lead;
 
-      // 1. Strategic analysis of task & attached files
-      let ctx = '';
-      if (lead !== planBot) {
-        const fileHint = filesToSend.length ? `مع فحص دقيق للملفات المرفقة (${filesToSend.length} ملف)` : '';
-        const a = await work(lead, `حلل هذا التاسك بدقة ${fileHint}. حدد فقط ما طلبه المستخدم واقترح خطة استراتيجية واقعية ومباشرة بدون اختلاق أي بيانات وهمية:\n${task}`, planBot, filesToSend);
+      // 1. Smart Triage: Determine exactly who is needed
+      const availSpecialists = ks.map(k => `- ${k}: ${R[k].ar} (تخصصه: ${R[k].s})`).join('\n');
+      const fileHint = filesToSend.length ? `[مرفق ${filesToSend.length} ملف]` : '';
+
+      const triagePrompt = `أنت منسق الفريق ومدير توزيع المهام الذكي.
+المهمة المطلوبة من المستخدم: "${task}" ${fileHint}
+
+الموظفون المتاحون في الشركة:
+${availSpecialists}
+
+المطلوب بدقة:
+حلل المهمة وقرر من من الموظفين يحتاجه هذا الطلب فعلياً لإنجازه بأعلى كفاءة وبدون أي ردود زائدة أو تكرار:
+
+قواعد اختيار صارمة جداً لمنع الردود الزائدة:
+1. إذا كانت المهمة سؤالاً مباشراً أو استشارة أو تختص بمجال واحد فقط (مثلاً: تصميم -> des فقط، قواعد بيانات -> db فقط، حسابات وتكاليف -> acc فقط، إشراف عام أو ترحيب -> ceo فقط):
+   اختر هذا الموظف الفردي فقط ليقوم بالرد والحل مباشرة!
+2. لا تُشرك أبداً أي موظف لا يحتاجه الطلب (مثال: طلب لوجو لا يحتاج مهندس قواعد بيانات ولا محاسب).
+3. لا تُشرك منظم الوقت (sch) إلا إذا كان المطلوب مشروعاً كاملاً كبيراً يحتاج خطة زمنية وجدول سبرنت أسبوعي.
+4. لا تُشرك معد التقارير (rep) إلا إذا كان هناك عمل جماعي مشترك من موظفين متعددين يحتاج تقريراً ختامياً.
+
+أرجع فقط JSON صالحاً بدون أي نص إضافي أو كتل Markdown، بالصيغة التالية:
+{
+  "assigned": [
+    {"employee": "كود الموظف", "subtask": "المهمة المحددة بدقة"}
+  ],
+  "needsSchedule": false,
+  "needsReport": false
+}`;
+
+      let triageResult = null;
+      try {
+        const triageRaw = await work(planBot, triagePrompt, 'all', filesToSend);
         if (!running) return;
-        post(lead, planBot, a, 'task');
-        ctx = `تحليل واستراتيجية الرئيس التنفيذي (${R[lead].n}):\n${a}\n\n`;
+        const jsonMatch = triageRaw.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          triageResult = JSON.parse(jsonMatch[0]);
+        }
+      } catch (e) {
+        console.warn('Triage parse failed, falling back', e);
       }
-
-      if (!running) return;
-
-      // 2. Generate Interactive Plan & Breakdown (WBS)
-      const avail = ks.filter(k => k !== planBot && k !== 'rep' && k !== 'sch').concat([]);
-      const pool = avail.length ? avail : ks;
-
-      const pr = await work(planBot, `${ctx}التاسك المطلوب تنفيذه: ${task}
-المطلوب: قسّم الشغل إلى مهام عملية ومباشرة على الموظفين المتاحين: ${pool.join(', ')}.
-قواعد صارمة:
-- المهام يجب أن تكون معتمدة حصراً على ما طلبه المستخدم في التاسك والملفات المرفقة.
-- لا تخترع منتجات أو بيانات لم تُطلب نهائياً.
-- أرجع فقط مصفوفة JSON صالحة بدون أي نص إضافي أو كتل برمجية، على هذا النحو الدقيق:
-[{"employee":"كود الموظف","subtask":"وصف المهمة بدقة"}]`, 'all', filesToSend);
-
-      if (!running) return;
 
       let jobs = [];
-      try {
-        const jsonMatch = pr.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          jobs = JSON.parse(jsonMatch[0]).filter(j => pool.includes(j.employee) && j.subtask);
-        }
-      } catch (e) {}
+      let needsSchedule = false;
+      let needsReport = false;
 
+      if (triageResult && Array.isArray(triageResult.assigned) && triageResult.assigned.length > 0) {
+        jobs = triageResult.assigned.filter(j => ks.includes(j.employee) && j.subtask);
+        needsSchedule = !!triageResult.needsSchedule && !!staff.sch;
+        needsReport = !!triageResult.needsReport && !!staff.rep && jobs.length > 1;
+      }
+
+      // Safe fallback if parsing failed
       if (!jobs.length) {
-        if (task.trim().length < 15 && !filesToSend.length) {
-          jobs = [{ employee: lead, subtask: `الرد المباشر على المستخدم وتوضيح الدعم المتاح للمهمة: ${task}` }];
+        const tLower = task.toLowerCase();
+        if (tLower.includes('لوجو') || tLower.includes('تصميم') || tLower.includes('ألوان') || tLower.includes('ui') || tLower.includes('واجه')) {
+          jobs = [{ employee: staff.des ? 'des' : lead, subtask: `تنفيذ المتطلبات التصميمية والهوية البصرية: ${task}` }];
+        } else if (tLower.includes('قاعدة بيانات') || tLower.includes('sql') || tLower.includes('جدول') || tLower.includes('schema') || tLower.includes('بيانات')) {
+          jobs = [{ employee: staff.db ? 'db' : lead, subtask: `تصميم وهيكلة قاعدة البيانات والاستعلامات: ${task}` }];
+        } else if (tLower.includes('تكلف') || tLower.includes('ميزاني') || tLower.includes('سعر') || tLower.includes('محاسب') || tLower.includes('أرباح')) {
+          jobs = [{ employee: staff.acc ? 'acc' : lead, subtask: `حساب التكاليف المالية والميزانية: ${task}` }];
+        } else if (task.trim().length < 25 && !filesToSend.length) {
+          jobs = [{ employee: lead, subtask: `الرد المباشر والشامل على المستخدم: ${task}` }];
         } else {
-          jobs = pool.map(k => ({ employee: k, subtask: `تنفيذ الاختصاص الخاص بـ ${R[k].ar} للتاسك الفعلي: ${task}` }));
+          const relevant = ks.filter(k => k !== 'sch' && k !== 'rep');
+          jobs = (relevant.length ? relevant.slice(0, 2) : [lead]).map(k => ({ employee: k, subtask: `تنفيذ جانب اختصاصك بدقة للتاسك: ${task}` }));
         }
       }
 
-      // Populate interactive Plan tab
+      // If only 1 employee is assigned, this is a single specialist execution:
+      if (jobs.length === 1) {
+        const j = jobs[0];
+        plan = [{ employee: j.employee, subtask: j.subtask, status: 'working', result: '' }];
+        save(); pane();
+        post(planBot, j.employee, j.subtask, 'task');
+
+        const r = await work(j.employee, `المطلوب منك بالتحديد: ${j.subtask}\n(طلب المستخدم: ${task})\nأنجز المطلوب بدقة واحترافية وبشكل نهائي ومباشر.`, 'user', filesToSend);
+        if (!running) return;
+
+        plan[0].status = 'done'; plan[0].result = r;
+        post(j.employee, 'user', r, 'result');
+        save(); show();
+        return;
+      }
+
+      // Multi-employee execution:
       plan = jobs.map(j => ({ employee: j.employee, subtask: j.subtask, status: 'pending', result: '' }));
-      post(planBot, 'all', '📋 تم إعداد خطة العمل التفصيلية:\n' + jobs.map(j => `• ${R[j.employee].ar}: ${j.subtask}`).join('\n'), 'task');
+      post(planBot, 'all', `📋 تم تكليف الموظفين المختصين فقط (${jobs.length} موظف):\n` + jobs.map(j => `• ${R[j.employee].ar}: ${j.subtask}`).join('\n'), 'task');
       save(); show();
 
-      // 3. Execution of each step in the plan
       let outs = [];
       for (let i = 0; i < jobs.length; i++) {
         if (!running) break;
@@ -835,28 +882,21 @@ async function run(task, target) {
       if (!running) return;
       const all = outs.map(o => `[${R[o.k].ar}]: ${o.r}`).join('\n\n');
 
-      // 4. Scheduling & Timeline
-      if (running && staff.sch && planBot !== 'sch') {
-        post(planBot, 'sch', '📅 إعداد الجدول الزمني والمواعيد النهائية', 'task');
+      // 4. Scheduling (Only if truly needed for a project)
+      if (running && needsSchedule && staff.sch && !jobs.some(j => j.employee === 'sch')) {
+        post(planBot, 'sch', '📅 إعداد الجدول الزمني والمواعيد النهائية للمشروع', 'task');
         sched = await work('sch', `التاسك: ${task}\nالمهام المنجزة:\n${jobs.map(j => `- ${R[j.employee].ar}: ${j.subtask}`).join('\n')}\nقم بإعداد جدول أسبوعي متكامل بـ Deadlines وتوزيع واضح للأيام بناءً على ما تم إنجازه فقط.`, staff.rep ? 'rep' : lead);
         if (running) post('sch', staff.rep ? 'rep' : lead, sched, 'result');
       }
 
-      // 5. Final Report
-      if (running) {
-        const rp = staff.rep ? 'rep' : lead;
-        if (rp === 'rep') post(planBot, 'rep', '📊 صياغة التقرير النهائي الشامل', 'task');
-        report = await work(rp, `اكتب تقريراً تنفيذياً شاملاً ونهائياً (ملخص تنفيذي، تفاصيل مخرجات الفريق، توصيات عملية) للتاسك: ${task}\n\nمخرجات الفريق المنجزة بالفعل:\n${all}${sched ? '\n\nالجدول الزمني:\n' + sched : ''}\nلا تضف أي بيانات خيالية من خارج المخرجات الفعلية.`, lead);
-        if (running) post(rp, lead, report, 'result');
-
-        // 6. CEO Final Review & Sign-off
-        if (running && staff.ceo && rp !== 'ceo') {
-          const rv = await work('ceo', `راجع هذا التقرير النهائي للمشروع واعتمده وقدم كلمتك الختامية للفريق:\n${report}`, 'user');
-          if (running) post('ceo', 'user', '✅ اعتماد ومراجعة الرئيس التنفيذي (CEO):\n' + rv, 'result');
-        }
-
-        tab = 'plan';
+      // 5. Final Report (Only if multi-person team effort)
+      if (running && needsReport && staff.rep && !jobs.some(j => j.employee === 'rep')) {
+        post(planBot, 'rep', '📊 صياغة التقرير النهائي الشامل', 'task');
+        report = await work('rep', `اكتب تقريراً تنفيذياً شاملاً ونهائياً للتاسك: ${task}\n\nمخرجات الفريق المنجزة بالفعل:\n${all}${sched ? '\n\nالجدول الزمني:\n' + sched : ''}\nلا تضف أي بيانات خيالية من خارج المخرجات الفعلية.`, lead);
+        if (running) post('rep', lead, report, 'result');
       }
+
+      tab = 'plan';
     }
   } catch (e) {
     if (e.message !== 'CANCELED' && !e.message.includes('abort')) {
