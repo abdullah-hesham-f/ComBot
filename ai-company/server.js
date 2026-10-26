@@ -41,6 +41,7 @@ const auth = (req, res, next) => {
   res.status(401).json({ error: 'unauthorized' });
 };
 
+app.get('/favicon.ico', (_, res) => res.status(204).end());
 app.get('/healthz', (_, res) => res.send('ok'));
 app.get('/api/config', (_, res) => res.json({ auth: !!APP_PASSWORD }));
 
@@ -100,6 +101,7 @@ async function* stream(system, prompt, files = [], signal) {
   // Prioritize active and stable multimodal models
   const modelsToTry = [MODEL_NAME, 'gemini-3-flash-preview', 'gemini-flash-latest'].filter(Boolean);
 
+  const hasFiles = Array.isArray(files) && files.length > 0;
   const parts = [];
   if (hasFiles) {
     for (const f of files) {
