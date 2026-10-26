@@ -536,7 +536,7 @@ function show() {
 function team() {
   $('team').innerHTML = Object.keys(R).map(k => {
     const on = staff[k], s = stat[k] || ['جاهز', ''];
-    const isActive = flash === k;
+    const isActive = (stat[k] && stat[k][0] === 'يشتغل') || flash === k;
     return `
       <div class="card emp ${isActive ? 'active-emp' : ''}">
         <div class="top">
@@ -695,10 +695,17 @@ function status(k, s, d) {
 
 function updateLiveTicker(who, what) {
   const ticker = $('liveTicker');
-  if (!who) { ticker.classList.add('hide'); return; }
+  const workingKeys = Object.keys(stat).filter(k => stat[k] && stat[k][0] === 'يشتغل');
+  if (!workingKeys.length && !who) { ticker.classList.add('hide'); return; }
   ticker.classList.remove('hide');
-  $('liveWho').textContent = R[who]?.ar || who;
-  $('liveWhat').textContent = what;
+  if (workingKeys.length > 1) {
+    $('liveWho').textContent = `⚡ Multi-Tasking (${workingKeys.length})`;
+    $('liveWhat').textContent = workingKeys.map(k => R[k]?.ar?.split(' ')[0] || k).join(' + ') + ' يعملون بالتوازي الآن...';
+  } else {
+    const k = who || workingKeys[0];
+    $('liveWho').textContent = R[k]?.ar || k;
+    $('liveWhat').textContent = what || stat[k]?.[1] || 'يحلل وينفذ المهمة...';
+  }
 }
 
 async function work(id, prompt, to, files = []) {
@@ -857,29 +864,29 @@ ${availSpecialists}
         return;
       }
 
-      // Multi-employee execution:
+      // Multi-employee execution (Parallel / Multi-Tasking):
       plan = jobs.map(j => ({ employee: j.employee, subtask: j.subtask, status: 'pending', result: '' }));
-      post(planBot, 'all', `📋 تم تكليف الموظفين المختصين فقط (${jobs.length} موظف):\n` + jobs.map(j => `• ${R[j.employee].ar}: ${j.subtask}`).join('\n'), 'task');
+      post(planBot, 'all', `🚀 جاري تشغيل الموظفين المختصين بالتوازي (Multi-Tasking) [${jobs.length} موظف]:\n` + jobs.map(j => `• ${R[j.employee].ar}: ${j.subtask}`).join('\n'), 'task');
       save(); show();
 
-      let outs = [];
-      for (let i = 0; i < jobs.length; i++) {
-        if (!running) break;
-        const j = jobs[i];
-        plan[i].status = 'working'; save(); pane();
-        post(planBot, j.employee, j.subtask, 'task');
+      // Launch all assigned jobs in parallel!
+      const jobPromises = jobs.map(async (j, idx) => {
+        if (!running) return null;
+        plan[idx].status = 'working'; save(); pane();
+        post(planBot, j.employee, `[مهمة متزامنة]: ${j.subtask}`, 'task');
 
-        const done = outs.map(o => `[${R[o.k].ar}]: ${o.r}`).join('\n\n');
         const fileCtx = filesToSend.length ? `[يرجى استخدام وتحليل الملفات المرفقة بالتاسك لإتمام دورك]` : '';
-        const r = await work(j.employee, `مهمتك المحددة: ${j.subtask}\n${fileCtx}\n(التاسك الأصلي: ${task})\n${done ? '\nمخرجات زملائك المنجزة حتى الآن:\n' + done : ''}\nتنبيه: التزم بالحقائق والمعطيات المتاحة ولا تفترض بيانات وهمية.`, staff.rep ? 'rep' : lead, filesToSend);
+        const r = await work(j.employee, `مهمتك المحددة: ${j.subtask}\n${fileCtx}\n(التاسك الأصلي: ${task})\nتنبيه: التزم بالحقائق والمعطيات المتاحة ولا تفترض بيانات وهمية.`, staff.rep ? 'rep' : lead, filesToSend);
 
-        if (!running) break;
-        plan[i].status = 'done'; plan[i].result = r; save(); pane();
+        if (!running) return null;
+        plan[idx].status = 'done'; plan[idx].result = r; save(); pane();
         post(j.employee, staff.rep ? 'rep' : lead, r, 'result');
-        outs.push({ k: j.employee, r });
-      }
+        return { k: j.employee, r };
+      });
 
+      const results = await Promise.all(jobPromises);
       if (!running) return;
+      const outs = results.filter(Boolean);
       const all = outs.map(o => `[${R[o.k].ar}]: ${o.r}`).join('\n\n');
 
       // 4. Scheduling (Only if truly needed for a project)
